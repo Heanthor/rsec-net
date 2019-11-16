@@ -87,5 +87,4 @@ func write() {
 	if err != nil {
 		log.Panic().Err(err).Msg("Flush failure")
 	}
-
 }
