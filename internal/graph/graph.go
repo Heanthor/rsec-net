@@ -22,6 +22,11 @@ type DirectedGraph struct {
 	adjList map[string]value
 }
 
+// NewDirectedGraph returns an empty directed graph.
+func NewDirectedGraph() *DirectedGraph {
+	return &DirectedGraph{make(map[string]value)}
+}
+
 // AddNode adds a new node to the graph.
 func (d *DirectedGraph) AddNode(n *Node) error {
 	if _, ok := d.adjList[n.Key]; ok {
@@ -58,7 +63,7 @@ func (d *DirectedGraph) RemoveNode(key string) error {
 
 // AddNode adds a new node to the graph.
 func (d *DirectedGraph) GetNode(key string) (*Node, error) {
-	if n, ok := d.adjList[key]; ok {
+	if n, ok := d.adjList[key]; !ok {
 		return nil, errors.New("node with key not in graph")
 	} else {
 		return n.start, nil
@@ -66,19 +71,24 @@ func (d *DirectedGraph) GetNode(key string) (*Node, error) {
 }
 
 // AddEdge adds a new edge to the graph with a cost.
-func (d *DirectedGraph) AddEdge(start, end *Node, cost int) error {
-	if _, ok := d.adjList[start.Key]; !ok {
+func (d *DirectedGraph) AddEdge(start, end string, cost int) error {
+	if _, ok := d.adjList[start]; !ok {
 		return errors.New("start node with key not in graph")
 	}
 
-	if _, ok := d.adjList[end.Key]; !ok {
+	if _, ok := d.adjList[end]; !ok {
 		return errors.New("end node with key not in graph")
 	}
 
-	list := d.adjList[start.Key]
-	list.edges = append(list.edges, edge{end, cost})
+	value := d.adjList[start]
+	endNode, err := d.GetNode(end)
+	if err != nil {
+		return err
+	}
 
-	d.adjList[start.Key] = list
+	value.edges = append(value.edges, edge{endNode, cost})
+
+	d.adjList[start] = value
 
 	return nil
 }
@@ -121,4 +131,58 @@ func (d *DirectedGraph) GetEdgeCost(start, end string) (int, error) {
 		}
 	}
 	return -1, errors.New("no edge exists between nodes")
+}
+
+// Chain is a method chaining struct for a directed graph.
+type Chain struct {
+	g   *DirectedGraph
+	err error
+}
+
+func NewDirectedGraphChain() *Chain {
+	g := NewDirectedGraph()
+
+	return &Chain{g, nil}
+}
+
+// Err returns the error from the chain, if any exist
+func (c *Chain) Err() error {
+	return c.err
+}
+
+// DirectedGraph returns the directed graph built by the chain, or the error if any occurred in building.
+func (c *Chain) DirectedGraph() (*DirectedGraph, error) {
+	if c.err != nil {
+		return nil, c.err
+	}
+
+	return c.g, nil
+}
+
+// AddNode calls AddNode on the graph
+func (c *Chain) AddNode(n *Node) *Chain {
+	if c.err != nil {
+		return c
+	}
+
+	err := c.g.AddNode(n)
+	if err != nil {
+		c.err = err
+	}
+
+	return c
+}
+
+// AddEdge calls addEdge on the graph
+func (c *Chain) AddEdge(start, end string, cost int) *Chain {
+	if c.err != nil {
+		return c
+	}
+
+	err := c.g.AddEdge(start, end, cost)
+	if err != nil {
+		c.err = err
+	}
+
+	return c
 }

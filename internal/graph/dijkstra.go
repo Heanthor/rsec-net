@@ -1,5 +1,7 @@
 package graph
 
+import "math"
+
 /*
 https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm#Pseudocode
 simple
@@ -57,43 +59,72 @@ priority queue-based
 type DijkstraSearcher struct {
 }
 
-//func (d *DijkstraSearcher) ShortestPath(graph *DirectedGraph, startKey, targetKey string) []*Node {
-//	pendingNodes := make(map[string]struct{})
-//	distanceTo := make(map[string]int)
-//	prevHop := make(map[string]*Node)
-//
-//	for vertexKey := range graph.adjList {
-//		distanceTo[vertexKey] = math.MaxInt32
-//		prevHop[vertexKey] = nil
-//		pendingNodes[vertexKey] = struct{}{}
-//	}
-//
-//	distanceTo[startKey] = 0
-//
-//	for len(pendingNodes) > 0 {
-//		// u ← vertex in Q with min dist[u]
-//		minDistance := math.MaxInt32
-//		var minDistanceKey string
-//
-//		for vertexKey := range pendingNodes {
-//			if distance := distanceTo[vertexKey]; distance <= minDistance {
-//				minDistance = distance
-//				minDistanceKey = vertexKey
-//			}
-//		}
-//
-//		// remove u from Q
-//		delete(pendingNodes, minDistanceKey)
-//
-//		edges := graph.adjList[minDistanceKey]
-//		for _, e := range edges {
-//			candidateDistance := minDistance + e.Cost
-//
-//			k := e.Dest.Key
-//			if candidateDistance < distanceTo[k] {
-//				distanceTo[k] = candidateDistance
-//				prevHop[k] = minDistanceKey
-//			}
-//		}
-//	}
-//}
+func (d *DijkstraSearcher) ShortestPath(graph *DirectedGraph, startKey, targetKey string) []*Node {
+	if startKey == targetKey {
+		return []*Node{}
+	}
+
+	pendingNodes := make(map[string]struct{})
+	distanceTo := make(map[string]int)
+	prevHop := make(map[string]*Node)
+
+	for vertexKey := range graph.adjList {
+		distanceTo[vertexKey] = math.MaxInt32
+		prevHop[vertexKey] = nil
+		pendingNodes[vertexKey] = struct{}{}
+	}
+
+	distanceTo[startKey] = 0
+
+	for len(pendingNodes) > 0 {
+		// u ← vertex in Q with min dist[u]
+		minDistance := math.MaxInt32
+		var minDistanceKey string
+
+		for vertexKey := range pendingNodes {
+			if distance := distanceTo[vertexKey]; distance <= minDistance {
+				minDistance = distance
+				minDistanceKey = vertexKey
+			}
+		}
+
+		// remove u from Q
+		delete(pendingNodes, minDistanceKey)
+
+		if minDistanceKey == targetKey {
+			path := []*Node{}
+			tmp, err := graph.GetNode(targetKey)
+			if err != nil {
+				panic(err)
+			}
+
+			if prevHop[targetKey] != nil || tmp.Key == startKey {
+				for tmp != nil {
+					path = append([]*Node{tmp}, path...)
+					tmp = prevHop[tmp.Key]
+				}
+			}
+
+			return path
+		}
+
+		edges := graph.adjList[minDistanceKey].edges
+		for _, e := range edges {
+			candidateDistance := minDistance + e.Cost
+
+			k := e.Dest.Key
+			if candidateDistance < distanceTo[k] {
+				distanceTo[k] = candidateDistance
+				node, err := graph.GetNode(minDistanceKey)
+				if err != nil {
+					// this will never happen..
+					panic(err)
+				}
+
+				prevHop[k] = node
+			}
+		}
+	}
+
+	return nil
+}

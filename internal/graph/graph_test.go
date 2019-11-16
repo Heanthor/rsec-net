@@ -37,6 +37,20 @@ func TestDirectedGraph_AddNodeExistingNode(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestDirectedGraph_GetNode(t *testing.T) {
+	singleNode := Node{"hello", nil}
+
+	graph := &DirectedGraph{
+		adjList: map[string]value{
+			singleNode.Key: {&singleNode, []edge{}},
+		},
+	}
+
+	result, err := graph.GetNode("hello")
+	assert.NoError(t, err)
+	assert.Equal(t, &singleNode, result)
+}
+
 func TestDirectedGraph_AddEdge(t *testing.T) {
 	startNode := Node{"start", nil}
 	endNode := Node{"end", nil}
@@ -48,7 +62,7 @@ func TestDirectedGraph_AddEdge(t *testing.T) {
 		},
 	}
 
-	err := graph.AddEdge(&startNode, &endNode, 5)
+	err := graph.AddEdge(startNode.Key, endNode.Key, 5)
 	assert.NoError(t, err)
 
 	expected := &DirectedGraph{
