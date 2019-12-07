@@ -59,9 +59,11 @@ priority queue-based
 type DijkstraSearcher struct {
 }
 
+// ShortestPath calculates the shortest path (by cost) from start to end.
 func (d *DijkstraSearcher) ShortestPath(graph *DirectedGraph, startKey, targetKey string) []*Node {
+	path := []*Node{}
 	if startKey == targetKey {
-		return []*Node{}
+		return path
 	}
 
 	pendingNodes := make(map[string]struct{})
@@ -92,7 +94,6 @@ func (d *DijkstraSearcher) ShortestPath(graph *DirectedGraph, startKey, targetKe
 		delete(pendingNodes, minDistanceKey)
 
 		if minDistanceKey == targetKey {
-			path := []*Node{}
 			tmp, err := graph.GetNode(targetKey)
 			if err != nil {
 				panic(err)
@@ -126,5 +127,5 @@ func (d *DijkstraSearcher) ShortestPath(graph *DirectedGraph, startKey, targetKe
 		}
 	}
 
-	return nil
+	return path
 }

@@ -183,3 +183,37 @@ func TestDijkstraSearcher_ShortestPath_Loop1(t *testing.T) {
 	result := searcher.ShortestPath(g, "n1", "n5")
 	assert.Equal(t, []*Node{n1, n2, n3, n4, n5}, result)
 }
+
+func TestDijkstraSearcher_ShortestPath_NonexistentNode(t *testing.T) {
+	n1 := &Node{"n1", nil}
+	n2 := &Node{"n2", nil}
+
+	g, err := NewDirectedGraphChain().
+		AddNode(n1).
+		AddNode(n2).
+		AddEdge("n1", "n2", 2).
+		DirectedGraph()
+	assert.NoError(t, err)
+
+	searcher := DijkstraSearcher{}
+	result := searcher.ShortestPath(g, "n1", "n3")
+	assert.Equal(t, []*Node{}, result)
+}
+
+func TestDijkstraSearcher_ShortestPath_NoPath(t *testing.T) {
+	n1 := &Node{"n1", nil}
+	n2 := &Node{"n2", nil}
+	n3 := &Node{"n3", nil}
+
+	g, err := NewDirectedGraphChain().
+		AddNode(n1).
+		AddNode(n2).
+		AddNode(n3).
+		AddEdge("n1", "n2", 2).
+		DirectedGraph()
+	assert.NoError(t, err)
+
+	searcher := DijkstraSearcher{}
+	result := searcher.ShortestPath(g, "n1", "n3")
+	assert.Equal(t, []*Node{}, result)
+}
