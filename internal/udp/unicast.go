@@ -1,8 +1,6 @@
 package udp
 
 import (
-	"bytes"
-	"encoding/gob"
 	"net"
 
 	"github.com/rs/zerolog/log"
@@ -23,7 +21,7 @@ type UniNet struct {
 // NewUniNet creates a new net struct used for sending and receiving to and from the given address (hostname:port)
 func NewUniNet(addr string) (*UniNet, error) {
 	errChan := make(chan error)
-	tcpAddr, err := net.ResolveUDPAddr("udp4", addr)
+	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
 		log.Error().Err(err).Msg("ResolveUDPAddr failure")
 		return nil, err
@@ -33,7 +31,7 @@ func NewUniNet(addr string) (*UniNet, error) {
 	doneStoppingChan := make(chan bool)
 
 	return &UniNet{
-		addr:             tcpAddr,
+		addr:             udpAddr,
 		addrString:       addr,
 		stopChan:         stopChan,
 		doneStoppingChan: doneStoppingChan,
@@ -44,86 +42,18 @@ func NewUniNet(addr string) (*UniNet, error) {
 
 // Write opens a writes a UDP datagram to the configured address and port.
 func (n *UniNet) Write(data interface{}) error {
-	conn, err := net.DialUDP("udp4", nil, n.addr)
-	if err != nil {
-		log.Error().Err(err).Msg("DialUDP failure")
-		return err
-	}
-	defer conn.Close()
-	conn.SetWriteBuffer(maxDatagramSize)
-
-	// need to use a buffer instead of writing directly to the wire
-	// since gob will attempt to send type information as separate
-	// udp datagrams, which we don't want!
-	var buf bytes.Buffer
-	encoder := gob.NewEncoder(&buf)
-	err = encoder.Encode(Message{data})
-	if err != nil {
-		log.Error().Err(err).Msg("Encode failure")
-		return err
-	}
-
-	len, err := conn.Write(buf.Bytes())
-	if err != nil {
-		log.Error().Err(err).Msg("Write failure")
-		return err
-	}
-
-	log.Debug().Int("len", len).Interface("data", data).Msg("wrote message")
-
-	return nil
+	return write(n.addr, data)
 }
 
 // StartReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
 func (n *UniNet) StartReceiving() (<-chan interface{}, error) {
-	listener, err := net.ListenUDP("udp4", n.addr)
-	if err != nil {
-		log.Error().Err(err).Msg("ListenUDP failure")
-		return nil, err
-	}
-	listener.SetReadBuffer(maxDatagramSize)
+	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, net.ListenUDP)
+	n.stopListener = resetFunc
 
-	dataChan := make(chan interface{})
-	go func(chan interface{}) {
-		for {
-			select {
-			case msg := <-n.stopChan:
-				if msg {
-					n.doneStoppingChan <- true
-					return
-				}
-			default:
-			}
-
-			b := make([]byte, maxDatagramSize)
-			len, src, err := listener.ReadFromUDP(b)
-			if err != nil {
-				log.Error().Err(err).Msg("Accept failure")
-			}
-
-			log.Debug().Interface("src", src).Int("len", len).Msg("got message")
-
-			var data Message
-			r := bytes.NewReader(b)
-			decoder := gob.NewDecoder(r)
-			err = decoder.Decode(&data)
-			if err != nil {
-				log.Error().Err(err).Msg("Read failure")
-			}
-
-			log.Debug().Interface("message", data).Msg("StartReceiving got message")
-			dataChan <- data.Data
-		}
-	}(dataChan)
-
-	n.stopListener = func() {
-		listener.Close()
-		close(dataChan)
-	}
-
-	return dataChan, err
+	return msgChan, err
 }
 
+// StopReceiving closes channels and stops the receive loop
 func (n *UniNet) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan

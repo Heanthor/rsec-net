@@ -1,15 +1,19 @@
 package net
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/Heanthor/rsec-net/internal/udp"
 
 	"github.com/rs/zerolog/log"
 )
 
 type announceDaemon struct {
-	NetInterface
+	mu               *udp.MulticastNet
 	announceInterval time.Duration
-	msgChan          chan AnnouncePacket
+	errChan          chan error
+	msgChan          <-chan interface{}
 	stopChan         chan bool
 	doneStoppingChan chan bool
 }
@@ -41,8 +45,13 @@ func (a *announceDaemon) StartAnnounceDaemon() {
 
 				return
 			case msgIn := <-a.msgChan:
-				a.HandleAnnounceResponse(&msgIn)
 				log.Debug().Interface("msgIn", msgIn).Msg("Announce daemon got message")
+				if m, ok := msgIn.(AnnouncePacket); ok {
+					a.HandleAnnounceResponse(&m)
+				} else {
+					log.Error().Msg("announce daemon got non-announce packet message")
+					a.errChan <- fmt.Errorf("announce daemon got non-announce packet message")
+				}
 			default:
 			}
 		}
@@ -55,20 +64,19 @@ func (a *announceDaemon) StopAnnounceDaemon() {
 	a.stopChan <- true
 	// wait to make sure receiving is done
 	<-a.doneStoppingChan
-	close(a.msgChan)
-	close(a.ErrChan)
+	a.mu.StopReceiving()
 }
 
 func (a *announceDaemon) doAnnounce() {
 	// send "i'm here" to anyone who will listen
 	// if a response comes back, add them to the list of known neighbors
 	// the response will be picked up in n's receiving goroutine
-	err := a.net.Write(AnnouncePacket{Packet: Packet{packetAnnounce}})
+	err := a.mu.Write(AnnouncePacket{Packet: Packet{packetAnnounce}})
 	if err != nil {
-		a.ErrChan <- err
+		a.errChan <- err
 	}
 }
 
-func (n *NetInterface) HandleAnnounceResponse(a *AnnouncePacket) {
+func (a *announceDaemon) HandleAnnounceResponse(ap *AnnouncePacket) {
 
 }
