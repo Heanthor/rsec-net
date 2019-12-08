@@ -11,7 +11,8 @@ type Net struct {
 	addr       *net.TCPAddr
 	addrString string
 
-	stopChan chan bool
+	stopChan         chan bool
+	doneStoppingChan chan bool
 
 	ErrChan <-chan error
 }
@@ -30,8 +31,15 @@ func NewNet(addr string) (*Net, error) {
 	}
 
 	stopChan := make(chan bool)
+	doneStoppingChan := make(chan bool)
 
-	return &Net{tcpAddr, addr, stopChan, errChan}, nil
+	return &Net{
+		addr:             tcpAddr,
+		addrString:       addr,
+		stopChan:         stopChan,
+		doneStoppingChan: doneStoppingChan,
+		ErrChan:          errChan,
+	}, nil
 }
 
 func (n *Net) Write(data interface{}) error {
@@ -67,6 +75,7 @@ func (n *Net) StartReceiving() (<-chan interface{}, error) {
 			select {
 			case msg := <-n.stopChan:
 				if msg {
+					n.doneStoppingChan <- true
 					return
 				}
 			default:
@@ -101,4 +110,5 @@ func (n *Net) StartReceiving() (<-chan interface{}, error) {
 
 func (n *Net) StopReceiving() {
 	n.stopChan <- true
+	<-n.doneStoppingChan
 }

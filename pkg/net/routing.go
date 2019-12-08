@@ -18,11 +18,10 @@ type NetInterface struct {
 	net            *tcp.Net
 	connectedNodes cmap.ConcurrentMap
 	settings       *NetInterfaceSettings
+	ad             *announceDaemon
 
-	announceDaemonMsgChan  chan AnnouncePacket
-	announceDaemonStopChan chan bool
-	ErrChan                chan<- error
-	MessageChan            chan interface{}
+	ErrChan     chan<- error
+	MessageChan chan interface{}
 }
 
 // NewNetInterface creates a net interface.
@@ -45,18 +44,30 @@ func NewNetInterface(addr string, settings NetInterfaceSettings) (*NetInterface,
 	m := cmap.New()
 
 	ni := &NetInterface{
-		net:                    n,
-		connectedNodes:         m,
-		settings:               &settings,
-		announceDaemonMsgChan:  make(chan AnnouncePacket),
-		announceDaemonStopChan: make(chan bool),
-		ErrChan:                errChan,
-		MessageChan:            msgChan,
+		net:            n,
+		connectedNodes: m,
+		settings:       &settings,
+		ErrChan:        errChan,
+		MessageChan:    msgChan,
+		ad: &announceDaemon{
+			announceInterval: settings.AnnounceInterval,
+			msgChan:          make(chan AnnouncePacket),
+			stopChan:         make(chan bool),
+			doneStoppingChan: make(chan bool),
+		},
 	}
 
 	go ni.sortReceived(recvChan)
 
 	return ni, nil
+}
+
+// Close stops the announce daemon and closes all open connections and channels
+func (n *NetInterface) Close() {
+	n.net.StopReceiving()
+	n.ad.StopAnnounceDaemon()
+	close(n.ErrChan)
+	close(n.MessageChan)
 }
 
 func (n *NetInterface) sortReceived(recvChan <-chan interface{}) {
@@ -66,9 +77,10 @@ func (n *NetInterface) sortReceived(recvChan <-chan interface{}) {
 		// otherwise, forward it to the general message channel
 		msgIn := <-recvChan
 		if p, ok := msgIn.(AnnouncePacket); ok {
-			n.announceDaemonMsgChan <- p
+			// forward to announce daemon
+			n.ad.msgChan <- p
 		} else {
-			n.MessageChan <- p
+			n.MessageChan <- msgIn
 		}
 	}
 }

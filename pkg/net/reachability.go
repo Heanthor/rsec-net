@@ -6,53 +6,66 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type announceDaemon struct {
+	NetInterface
+	announceInterval time.Duration
+	msgChan          chan AnnouncePacket
+	stopChan         chan bool
+	doneStoppingChan chan bool
+}
+
 // StartAnnounceDaemon creates the announce daemon and starts its operation.
 // The announce daemon does two things: periodically announces on the network, and listens for
 // other announcements, updating the map of known nodes when found.
-func (n *NetInterface) StartAnnounceDaemon() {
+func (a *announceDaemon) StartAnnounceDaemon() {
 	log.Info().Msg("Starting announce daemon...")
-	announceTicker := time.NewTicker(n.settings.AnnounceInterval)
+	announceTicker := time.NewTicker(a.announceInterval)
 
 	go func() {
 		for {
 			select {
-			case <-n.announceDaemonStopChan:
+			case <-a.stopChan:
+				// don't care about waiting for this goroutine before doing other cleanup
 				return
 			case <-announceTicker.C:
-				n.doAnnounce()
+				a.doAnnounce()
 			}
 		}
 	}()
 
-	go func(r <-chan interface{}) {
+	go func() {
 		for {
 			select {
-			case <-n.announceDaemonStopChan:
+			case <-a.stopChan:
+				a.doneStoppingChan <- true
+
 				return
-			case msgIn := <-r:
-				if p, ok := msgIn.(AnnouncePacket); ok {
-					n.HandleAnnounceResponse(&p)
-				}
+			case msgIn := <-a.msgChan:
+				a.HandleAnnounceResponse(&msgIn)
 				log.Debug().Interface("msgIn", msgIn).Msg("Announce daemon got message")
 			default:
 			}
 		}
-	}(n.MessageChan)
+	}()
 
 	log.Info().Msg("Announce daemon started")
 }
 
-func (n *NetInterface) StopAnnounceDaemon() {
-	n.announceDaemonStopChan <- true
+func (a *announceDaemon) StopAnnounceDaemon() {
+	a.stopChan <- true
+	// wait to make sure receiving is done
+	<-a.doneStoppingChan
+	close(a.msgChan)
+	close(a.ErrChan)
 }
 
-func (n *NetInterface) doAnnounce() {
+func (a *announceDaemon) doAnnounce() {
 	// send "i'm here" to anyone who will listen
 	// if a response comes back, add them to the list of known neighbors
 	// the response will be picked up in n's receiving goroutine
-	err := n.net.Write(AnnouncePacket{Packet: Packet{packetAnnounce}})
+	err := a.net.Write(AnnouncePacket{Packet: Packet{packetAnnounce}})
 	if err != nil {
-		n.ErrChan <- err
+		a.ErrChan <- err
 	}
 }
 
