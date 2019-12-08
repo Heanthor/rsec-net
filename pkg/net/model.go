@@ -5,7 +5,6 @@ const (
 )
 
 type Packet struct {
-	PacketType  uint8
 	SequenceNum uint64
 }
 

@@ -12,10 +12,17 @@ type Net struct {
 	addrString string
 
 	stopChan chan bool
+
+	ErrChan <-chan error
+}
+
+type Message struct {
+	Data interface{}
 }
 
 // NewNet creates a new net struct used for sending and receiving to and from the given address (hostname:port)
 func NewNet(addr string) (*Net, error) {
+	errChan := make(chan error)
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		log.Error().Err(err).Msg("ResolveTCPAddr failure")
@@ -24,7 +31,7 @@ func NewNet(addr string) (*Net, error) {
 
 	stopChan := make(chan bool)
 
-	return &Net{tcpAddr, addr, stopChan}, nil
+	return &Net{tcpAddr, addr, stopChan, errChan}, nil
 }
 
 func (n *Net) Write(data interface{}) error {
@@ -37,9 +44,9 @@ func (n *Net) Write(data interface{}) error {
 	defer conn.Close()
 
 	encoder := gob.NewEncoder(conn)
-	err = encoder.Encode(data)
+	err = encoder.Encode(Message{data})
 	if err != nil {
-		log.Error().Err(err).Msg("WriteString failure")
+		log.Error().Err(err).Msg("Write failure")
 		return err
 	}
 
@@ -72,7 +79,7 @@ func (n *Net) StartReceiving() (<-chan interface{}, error) {
 
 			log.Debug().Msg("got connection")
 
-			var data interface{}
+			var data Message
 			decoder := gob.NewDecoder(conn)
 			err = decoder.Decode(&data)
 			if err != nil {
@@ -85,13 +92,13 @@ func (n *Net) StartReceiving() (<-chan interface{}, error) {
 			}
 
 			log.Debug().Interface("message", data).Msg("StartReceiving got message")
-			dataChan <- data
+			dataChan <- data.Data
 		}
 	}(dataChan)
 
 	return dataChan, err
 }
 
-func (n *Net) Close() {
+func (n *Net) StopReceiving() {
 	n.stopChan <- true
 }
