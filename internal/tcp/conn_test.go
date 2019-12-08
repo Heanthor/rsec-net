@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"encoding/gob"
-	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,12 +36,6 @@ func init() {
 
 	// needed to send the type through gob
 	gob.Register(s{})
-}
-
-func TestNet_Init(t *testing.T) {
-	conn, err := net.Dial("tcp", addr)
-	defer conn.Close()
-	require.NoError(t, err)
 }
 
 func TestNet_SendReceive(t *testing.T) {

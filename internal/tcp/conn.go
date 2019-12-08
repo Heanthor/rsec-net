@@ -14,7 +14,8 @@ type Net struct {
 	stopChan         chan bool
 	doneStoppingChan chan bool
 
-	ErrChan <-chan error
+	stopListener func()
+	ErrChan      <-chan error
 }
 
 type Message struct {
@@ -39,9 +40,11 @@ func NewNet(addr string) (*Net, error) {
 		stopChan:         stopChan,
 		doneStoppingChan: doneStoppingChan,
 		ErrChan:          errChan,
+		stopListener:     func() {},
 	}, nil
 }
 
+// Write opens a connection to the saved addr, sends a message, then closes the connection.
 func (n *Net) Write(data interface{}) error {
 	conn, err := net.DialTCP("tcp", nil, n.addr)
 	if err != nil {
@@ -105,10 +108,16 @@ func (n *Net) StartReceiving() (<-chan interface{}, error) {
 		}
 	}(dataChan)
 
+	n.stopListener = func() {
+		listener.Close()
+		close(dataChan)
+	}
+
 	return dataChan, err
 }
 
 func (n *Net) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan
+	n.stopListener()
 }
