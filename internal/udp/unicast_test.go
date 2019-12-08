@@ -12,7 +12,7 @@ import (
 const addr = ":1145"
 
 var (
-	testNet  *Net
+	testNet  *UniNet
 	recvChan <-chan interface{}
 )
 
@@ -21,7 +21,7 @@ type s struct {
 }
 
 func init() {
-	n, err := NewNet(addr)
+	n, err := NewUniNet(addr)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func init() {
 
 func TestNet_SendReceive(t *testing.T) {
 	// use another Net to send to the running server
-	n, err := NewNet(addr)
+	n, err := NewUniNet(addr)
 	require.NoError(t, err)
 
 	err = n.Write(s{"hello"})
@@ -54,7 +54,7 @@ func TestNet_SendReceive(t *testing.T) {
 
 func TestNet_SendReceiveMultiple(t *testing.T) {
 	// use another Net to send to the running server
-	n, err := NewNet(addr)
+	n, err := NewUniNet(addr)
 	require.NoError(t, err)
 
 	err = n.Write(s{"hello"})
