@@ -77,6 +77,7 @@ func NewInterface(nodeName, addr, multicastAddr string, settings InterfaceSettin
 			stopChan:         make(chan bool),
 			doneStoppingChan: make(chan bool),
 			connectedNodes:   m,
+			acceptOwnPackets: false,
 		},
 	}, nil
 }

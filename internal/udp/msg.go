@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"net"
+	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 )
@@ -52,22 +54,27 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 	}
 	listener.SetReadBuffer(maxDatagramSize)
 
-	dataChan := make(chan interface{})
+	dataChan := make(chan interface{}, 1)
 	go func(chan interface{}) {
 		for {
 			select {
-			case msg := <-stopChan:
-				if msg {
-					doneStoppingChan <- true
-					return
-				}
+			case <-stopChan:
+				doneStoppingChan <- true
+				return
 			default:
 			}
+			listener.SetReadDeadline(time.Now().Add(time.Second * 2))
 
 			b := make([]byte, maxDatagramSize)
 			len, src, err := listener.ReadFromUDP(b)
-			if err != nil {
+			if err != nil && strings.Index(err.Error(), "i/o timeout") < 0 {
 				log.Error().Err(err).Msg("Accept failure")
+				continue
+			}
+
+			if len == 0 {
+				// TODO figure out why this happens
+				continue
 			}
 
 			log.Debug().Interface("src", src).Int("len", len).Msg("got message")
@@ -78,6 +85,7 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 			err = decoder.Decode(&data)
 			if err != nil {
 				log.Error().Err(err).Msg("Read failure")
+				continue
 			}
 
 			log.Debug().Interface("message", data).Msg("StartReceiving got message")

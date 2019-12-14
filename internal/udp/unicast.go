@@ -58,4 +58,5 @@ func (n *UniNet) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan
 	n.stopListener()
+	log.Debug().Msg("unicast stopped receiving")
 }

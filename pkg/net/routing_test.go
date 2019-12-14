@@ -1,17 +1,24 @@
 package net
 
-// import (
-// 	"time"
-// )
+const (
+	uniAddr = ":1145"
+)
 
-// const addr = ":1235"
-
-// var ni *NetInterface
+var iface *Interface
 
 // func init() {
-// 	newNI, err := NewNetInterface(addr, NetInterfaceSettings{time.Second * 1})
+// 	fmt.Println("Running routing_test init")
+// 	i, err := NewInterface("initNode", uniAddr, multiAddr, InterfaceSettings{time.Second * 1})
 // 	if err != nil {
 // 		panic(err)
 // 	}
-// 	ni = newNI
+
+// 	iface = i
+// }
+
+// func TestInterface_Announce(t *testing.T) {
+// 	testiface, err := NewInterface("testNode", uniAddr, multiAddr, InterfaceSettings{time.Second * 1})
+// 	require.NoError(t, err)
+
+// 	testiface.MessageChan
 // }

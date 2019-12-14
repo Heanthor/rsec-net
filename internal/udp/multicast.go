@@ -62,4 +62,5 @@ func (n *MulticastNet) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan
 	n.stopListener()
+	log.Debug().Msg("multicast stopped receiving")
 }

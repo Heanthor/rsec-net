@@ -13,13 +13,14 @@ import (
 )
 
 type announceDaemon struct {
-	mu               *udp.MulticastNet
+	mu               udp.NetCommunicator
 	announceInterval time.Duration
 	errChan          chan error
 	msgChan          <-chan interface{}
 	stopChan         chan bool
 	doneStoppingChan chan bool
 	identity         Identity
+	acceptOwnPackets bool
 
 	connectedNodes cmap.ConcurrentMap
 
@@ -33,6 +34,16 @@ type announceDaemon struct {
 // other announcements, updating the map of known nodes when found.
 func (a *announceDaemon) StartAnnounceDaemon() {
 	log.Info().Msg("Starting announce daemon...")
+	a.startSending()
+
+	time.Sleep(time.Second * 1)
+
+	a.startReceiving()
+
+	log.Info().Msg("Announce daemon started")
+}
+
+func (a *announceDaemon) startSending() {
 	announceTicker := time.NewTicker(a.announceInterval)
 
 	go func() {
@@ -46,7 +57,9 @@ func (a *announceDaemon) StartAnnounceDaemon() {
 			}
 		}
 	}()
+}
 
+func (a *announceDaemon) startReceiving() {
 	go func() {
 		for {
 			select {
@@ -55,26 +68,28 @@ func (a *announceDaemon) StartAnnounceDaemon() {
 
 				return
 			case msgIn := <-a.msgChan:
-				log.Debug().Interface("msgIn", msgIn).Msg("Announce daemon got message")
 				if m, ok := msgIn.(AnnouncePacket); ok {
-					a.handleAnnounceResponse(&m)
+					if a.acceptOwnPackets || m.Identity.Addr != a.identity.Addr {
+						a.handleAnnounceResponse(&m)
+					}
 				} else {
-					log.Error().Msg("announce daemon got non-announce packet message")
+					log.Error().Interface("msgIn", msgIn).Msg("announce daemon got non-announce packet message")
 					a.errChan <- fmt.Errorf("announce daemon got non-announce packet message")
 				}
 			default:
 			}
 		}
 	}()
-
-	log.Info().Msg("Announce daemon started")
 }
 
 func (a *announceDaemon) StopAnnounceDaemon() {
+	// two goroutines listen on this channel
+	a.stopChan <- true
 	a.stopChan <- true
 	// wait to make sure receiving is done
 	<-a.doneStoppingChan
 	a.mu.StopReceiving()
+	log.Debug().Msg("Announce daemon stopped")
 }
 
 func (a *announceDaemon) doAnnounce() {
@@ -85,15 +100,17 @@ func (a *announceDaemon) doAnnounce() {
 	// we only update the sequence number if the message being sent is different
 	// from the last sent message. we still send the message regardless
 	// in case a new node has joined the network
-	hash := maputils.ComputeHash(a.connectedNodes)
+	hash, items := maputils.ComputeHash(a.connectedNodes)
 	if hash != a.connNodesHash {
 		a.seqNo++
 		a.connNodesHash = hash
 	}
 
+	log.Debug().Uint16("seqNo", a.seqNo).Msg("Announce daemon doing announce")
 	if err := a.mu.Write(AnnouncePacket{
-		Packet:   Packet{a.seqNo},
-		Identity: a.identity,
+		Packet:         Packet{a.seqNo},
+		Identity:       a.identity,
+		ConnectedNodes: items,
 	}); err != nil {
 		a.errChan <- err
 	}
@@ -101,4 +118,5 @@ func (a *announceDaemon) doAnnounce() {
 
 func (a *announceDaemon) handleAnnounceResponse(ap *AnnouncePacket) {
 	a.connectedNodes.SetIfAbsent(ap.NodeName, ap)
+	log.Debug().Interface("connectedNodes", a.connectedNodes).Msg("New connected nodes")
 }

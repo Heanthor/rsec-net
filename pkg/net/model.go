@@ -23,6 +23,7 @@ type Identity struct {
 type AnnouncePacket struct {
 	Packet
 	Identity
+	ConnectedNodes map[string]interface{}
 }
 
 func init() {
