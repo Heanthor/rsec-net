@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Heanthor/rsec-net/internal/maputils"
+
 	"github.com/Heanthor/rsec-net/internal/udp"
+	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/rs/zerolog/log"
 )
@@ -16,6 +19,13 @@ type announceDaemon struct {
 	msgChan          <-chan interface{}
 	stopChan         chan bool
 	doneStoppingChan chan bool
+	identity         Identity
+
+	connectedNodes cmap.ConcurrentMap
+
+	// announce fields
+	seqNo         uint16
+	connNodesHash [16]byte
 }
 
 // StartAnnounceDaemon creates the announce daemon and starts its operation.
@@ -47,7 +57,7 @@ func (a *announceDaemon) StartAnnounceDaemon() {
 			case msgIn := <-a.msgChan:
 				log.Debug().Interface("msgIn", msgIn).Msg("Announce daemon got message")
 				if m, ok := msgIn.(AnnouncePacket); ok {
-					a.HandleAnnounceResponse(&m)
+					a.handleAnnounceResponse(&m)
 				} else {
 					log.Error().Msg("announce daemon got non-announce packet message")
 					a.errChan <- fmt.Errorf("announce daemon got non-announce packet message")
@@ -70,13 +80,25 @@ func (a *announceDaemon) StopAnnounceDaemon() {
 func (a *announceDaemon) doAnnounce() {
 	// send "i'm here" to anyone who will listen
 	// if a response comes back, add them to the list of known neighbors
-	// the response will be picked up in n's receiving goroutine
-	err := a.mu.Write(AnnouncePacket{Packet: Packet{packetAnnounce}})
-	if err != nil {
+	// the response will be picked up in mu's receiving goroutine
+
+	// we only update the sequence number if the message being sent is different
+	// from the last sent message. we still send the message regardless
+	// in case a new node has joined the network
+	hash := maputils.ComputeHash(a.connectedNodes)
+	if hash != a.connNodesHash {
+		a.seqNo++
+		a.connNodesHash = hash
+	}
+
+	if err := a.mu.Write(AnnouncePacket{
+		Packet:   Packet{a.seqNo},
+		Identity: a.identity,
+	}); err != nil {
 		a.errChan <- err
 	}
 }
 
-func (a *announceDaemon) HandleAnnounceResponse(ap *AnnouncePacket) {
-
+func (a *announceDaemon) handleAnnounceResponse(ap *AnnouncePacket) {
+	a.connectedNodes.SetIfAbsent(ap.NodeName, ap)
 }

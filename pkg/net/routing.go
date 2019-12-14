@@ -7,27 +7,37 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 )
 
+// NodeInfo contains information about a discovered network node
 type NodeInfo struct {
+	NodeName  string
+	Addr      string
+	Latency   latency
+	lastSeqNo uint16
 }
 
-type NetInterfaceSettings struct {
+// InterfaceSettings contains settings for the net interface
+type InterfaceSettings struct {
 	AnnounceInterval time.Duration
 }
 
-type NetInterface struct {
-	uni            *udp.UniNet
-	connectedNodes cmap.ConcurrentMap
-	settings       *NetInterfaceSettings
-	ad             *announceDaemon
+// Interface maintains connectivity with the mesh network,
+// and provides functions for sending and receiving on the network.
+// TODO:
+// function for sending to addr, send to node name
+// receive from node, receive from all
+type Interface struct {
+	uni      *udp.UniNet
+	settings *InterfaceSettings
+	ad       *announceDaemon
 
 	ErrChan     chan<- error
 	MessageChan <-chan interface{}
 }
 
-// NewNetInterface creates a net interface.
+// NewInterface creates a net interface.
 // addr must be of form ip:port.
-// returns error if a tcp connection cannot be established.
-func NewNetInterface(addr, multicastAddr string, settings NetInterfaceSettings) (*NetInterface, error) {
+// returns error if udp address resolution fails.
+func NewInterface(nodeName, addr, multicastAddr string, settings InterfaceSettings) (*Interface, error) {
 	errChan := make(chan error)
 
 	// create unicast and multicast communicators
@@ -53,25 +63,26 @@ func NewNetInterface(addr, multicastAddr string, settings NetInterfaceSettings) 
 
 	m := cmap.New()
 
-	return &NetInterface{
-		uni:            u,
-		connectedNodes: m,
-		settings:       &settings,
-		ErrChan:        errChan,
-		MessageChan:    recvChan,
+	return &Interface{
+		uni:         u,
+		settings:    &settings,
+		ErrChan:     errChan,
+		MessageChan: recvChan,
 		ad: &announceDaemon{
+			identity:         Identity{nodeName, addr},
 			mu:               mu,
 			errChan:          errChan,
 			announceInterval: settings.AnnounceInterval,
 			msgChan:          mRecvChan,
 			stopChan:         make(chan bool),
 			doneStoppingChan: make(chan bool),
+			connectedNodes:   m,
 		},
 	}, nil
 }
 
 // Close stops the announce daemon and closes all open connections and channels
-func (n *NetInterface) Close() {
+func (n *Interface) Close() {
 	n.uni.StopReceiving()
 	n.ad.StopAnnounceDaemon()
 	close(n.ErrChan)

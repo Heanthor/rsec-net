@@ -8,13 +8,21 @@ const (
 	packetAnnounce = iota
 )
 
+// Packet is the basic packet struct
 type Packet struct {
-	SequenceNum uint64
+	SequenceNum uint16
 }
 
+// Identity contains information to identify a struct
+type Identity struct {
+	NodeName string
+	Addr     string
+}
+
+// AnnouncePacket contains information about the current node to send to other nodes
 type AnnouncePacket struct {
 	Packet
-	RemoteName string
+	Identity
 }
 
 func init() {
