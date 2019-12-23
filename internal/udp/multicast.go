@@ -64,3 +64,7 @@ func (n *MulticastNet) StopReceiving() {
 	n.stopListener()
 	log.Debug().Msg("multicast stopped receiving")
 }
+
+func (n *MulticastNet) Addr() string {
+	return n.addrString
+}

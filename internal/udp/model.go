@@ -5,6 +5,7 @@ type NetCommunicator interface {
 	Write(data interface{}) error
 	StartReceiving() (<-chan interface{}, error)
 	StopReceiving()
+	Addr() string
 }
 
 // Message is a basic serializable message

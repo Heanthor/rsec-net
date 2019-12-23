@@ -60,3 +60,7 @@ func (n *UniNet) StopReceiving() {
 	n.stopListener()
 	log.Debug().Msg("unicast stopped receiving")
 }
+
+func (n *UniNet) Addr() string {
+	return n.addrString
+}

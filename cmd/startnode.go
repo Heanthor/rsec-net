@@ -3,6 +3,8 @@ package cmd
 import (
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/Heanthor/rsec-net/pkg/net"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -40,6 +42,11 @@ func init() {
 	announceCmd.Flags().StringP("addr", "d", ":1146", "Address to transmit data on")
 	announceCmd.Flags().StringP("nodeName", "n", "", "Node name")
 	announceCmd.Flags().IntP("announceInterval", "i", 5, "interval (in seconds) to announce presence to the network")
+
+	viper.BindPFlag("announceAddr", announceCmd.Flags().Lookup("announceAddr"))
+	viper.BindPFlag("addr", announceCmd.Flags().Lookup("addr"))
+	viper.BindPFlag("nodeName", announceCmd.Flags().Lookup("nodeName"))
+	viper.BindPFlag("announceInterval", announceCmd.Flags().Lookup("announceInterval"))
 
 	announceCmd.MarkFlagRequired("nodeName")
 
