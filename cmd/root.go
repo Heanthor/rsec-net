@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -17,7 +19,7 @@ var Verbose bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "announce",
+	Use:   "rsec-net",
 	Short: "A mesh network application.",
 	Long: `An implementation of link state routing in Go.
 	
@@ -46,9 +48,6 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rsec-net.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -73,6 +72,10 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		log.Info().Str("file", viper.ConfigFileUsed()).Msg("Using config file")
+	}
+
+	if viper.GetBool("prettylogging") {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 }

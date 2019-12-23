@@ -82,6 +82,11 @@ func NewInterface(nodeName, addr, multicastAddr string, settings InterfaceSettin
 	}, nil
 }
 
+// StartAnnounce starts announcing the node to the network
+func (n *Interface) StartAnnounce() {
+	n.ad.StartAnnounceDaemon()
+}
+
 // Close stops the announce daemon and closes all open connections and channels
 func (n *Interface) Close() {
 	n.uni.StopReceiving()
