@@ -1,0 +1,3 @@
+nodes:
+    - addr: "localhost"
+      port: "1145"
