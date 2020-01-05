@@ -14,9 +14,6 @@ import (
 
 var cfgFile string
 
-// Verbose enables verbose logging
-var Verbose bool
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "rsec-net",
@@ -47,7 +44,10 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rsec-net.yaml)")
-	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose (debug) logging")
+	rootCmd.PersistentFlags().Bool("profile", false, "enable cpu profiling")
+	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	viper.BindPFlag("profile", rootCmd.PersistentFlags().Lookup("profile"))
 }
 
 // initConfig reads in config file and ENV variables if set.

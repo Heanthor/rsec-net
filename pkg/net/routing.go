@@ -37,26 +37,15 @@ type Interface struct {
 // NewInterface creates a net interface.
 // addr must be of form ip:port.
 // returns error if udp address resolution fails.
-func NewInterface(nodeName, addr, multicastAddr string, settings InterfaceSettings) (*Interface, error) {
+func NewInterface(nodeName string, dataComm *udp.UniNet, announceComm udp.NetCommunicator, settings InterfaceSettings) (*Interface, error) {
 	errChan := make(chan error)
 
-	// create unicast and multicast communicators
-	u, err := udp.NewUniNet(addr)
+	recvChan, err := dataComm.StartReceiving()
 	if err != nil {
 		return nil, err
 	}
 
-	recvChan, err := u.StartReceiving()
-	if err != nil {
-		return nil, err
-	}
-
-	mu, err := udp.NewMulticastNet(multicastAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	mRecvChan, err := mu.StartReceiving()
+	mRecvChan, err := announceComm.StartReceiving()
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +53,13 @@ func NewInterface(nodeName, addr, multicastAddr string, settings InterfaceSettin
 	m := cmap.New()
 
 	return &Interface{
-		uni:         u,
+		uni:         dataComm,
 		settings:    &settings,
 		ErrChan:     errChan,
 		MessageChan: recvChan,
 		ad: &announceDaemon{
-			identity:         Identity{nodeName, addr},
-			mu:               mu,
+			identity:         Identity{nodeName, dataComm.Addr()},
+			mu:               announceComm,
 			errChan:          errChan,
 			announceInterval: settings.AnnounceInterval,
 			msgChan:          mRecvChan,

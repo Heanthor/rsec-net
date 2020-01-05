@@ -33,7 +33,7 @@ type announceDaemon struct {
 // The announce daemon does two things: periodically announces on the network, and listens for
 // other announcements, updating the map of known nodes when found.
 func (a *announceDaemon) StartAnnounceDaemon() {
-	log.Info().Str("addr", a.mu.Addr()).Msg("Starting announce daemon...")
+	log.Info().Str("addr", a.mu.Addr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
 	a.startSending()
 
 	time.Sleep(time.Second * 1)
@@ -76,7 +76,6 @@ func (a *announceDaemon) startReceiving() {
 					log.Error().Interface("msgIn", msgIn).Msg("announce daemon got non-announce packet message")
 					a.errChan <- fmt.Errorf("announce daemon got non-announce packet message")
 				}
-			default:
 			}
 		}
 	}()
@@ -118,5 +117,5 @@ func (a *announceDaemon) doAnnounce() {
 
 func (a *announceDaemon) handleAnnounceResponse(ap *AnnouncePacket) {
 	a.connectedNodes.SetIfAbsent(ap.NodeName, ap)
-	log.Debug().Interface("connectedNodes", a.connectedNodes).Msg("New connected nodes")
+	log.Info().Interface("connectedNodes", a.connectedNodes).Msg("New connected nodes")
 }

@@ -6,6 +6,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6
 	github.com/pelletier/go-toml v1.6.0 // indirect
+	github.com/pkg/profile v1.4.0
 	github.com/rs/zerolog v1.16.0
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

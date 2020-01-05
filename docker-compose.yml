@@ -1,15 +1,45 @@
 version: "3.7"
 
 services:
+    multicaster:
+        build:
+            context: "local-multicast/."
+            dockerfile: Dockerfile
+        ports:
+            - "1140/udp"
+        environment:
+            - MULTICASTER_PORT=1140
     base_station:
         build:
             context: .
             dockerfile: Dockerfile
         ports:
-            - "1146/udp"
             - "1145/udp"
+            - "1146/udp"
+        environment:
+            - NODENAME=basestation
+            - ANNOUNCEMULTICAST=false
+            - ANNOUNCEADDR=:1145
+            - DATAADDR=:1146
+        networks:
+            - basestation_network
     # node1:
-    #     dockerfile: Dockerfile
+    #     build:
+    #         context: .
+    #         dockerfile: Dockerfile        
     #     ports:
-    #         - "1146/udp"
-    #         - "1145/udp"
+    #         - "1144/udp"
+    #         - "1147/udp"
+    #     environment:
+    #         - NODENAME=node1
+    #         - ANNOUNCEMULTICAST=false
+    #         - ANNOUNCEADDR=:1144
+    #         - DATAADDR=:1147
+    #     networks:
+    #         - node1_network
+
+networks:
+    basestation_network:
+        internal: true
+    node1_network:
+        internal: true
