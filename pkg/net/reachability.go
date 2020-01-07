@@ -13,7 +13,7 @@ import (
 )
 
 type announceDaemon struct {
-	mu               udp.NetCommunicator
+	w                udp.NetWriter
 	announceInterval time.Duration
 	errChan          chan error
 	msgChan          <-chan interface{}
@@ -33,7 +33,7 @@ type announceDaemon struct {
 // The announce daemon does two things: periodically announces on the network, and listens for
 // other announcements, updating the map of known nodes when found.
 func (a *announceDaemon) StartAnnounceDaemon() {
-	log.Info().Str("writeAddr", a.mu.WriteAddr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
+	log.Info().Str("writeAddr", a.w.WriteAddr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
 	a.startSending()
 
 	time.Sleep(time.Second * 1)
@@ -87,7 +87,6 @@ func (a *announceDaemon) StopAnnounceDaemon() {
 	a.stopChan <- true
 	// wait to make sure receiving is done
 	<-a.doneStoppingChan
-	a.mu.StopReceiving()
 	log.Debug().Msg("Announce daemon stopped")
 }
 
@@ -106,7 +105,7 @@ func (a *announceDaemon) doAnnounce() {
 	}
 
 	log.Debug().Uint16("seqNo", a.seqNo).Msg("Announce daemon doing announce")
-	if err := a.mu.Write(AnnouncePacket{
+	if err := a.w.Write(AnnouncePacket{
 		Packet:         Packet{a.seqNo},
 		Identity:       a.identity,
 		ConnectedNodes: items,

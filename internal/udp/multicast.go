@@ -18,7 +18,7 @@ type MulticastReader struct {
 	ErrChan      <-chan error
 }
 
-// NewMulticastNet creates a new net struct used for sending and receiving to and from the given address (hostname:port)
+// NewMulticastReader creates a new net struct used for receiving from the given address (hostname:port)
 func NewMulticastReader(addr string) (*MulticastReader, error) {
 	errChan := make(chan error)
 	udpAddr, err := net.ResolveUDPAddr("udp4", addr)

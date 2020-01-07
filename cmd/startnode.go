@@ -31,59 +31,69 @@ var announceCmd = &cobra.Command{
 		if n == "" {
 			log.Panic().Msg("node name is required")
 		}
-		a := viper.GetString("announceAddr")
-		d := viper.GetString("dataAddr")
-		i := viper.GetInt("announceInterval")
 
-		initalizeAnnounce(n, d, a, i)
+		initalizeAnnounce(n)
 	},
 }
 
 func init() {
-	announceCmd.Flags().StringP("announceAddr", "a", "239.0.0.0:1145", "Address to announce on")
+	announceCmd.Flags().String("announceAddr", "239.0.0.0:1145", "Address to announce on (host:port)")
+	announceCmd.Flags().String("announceListenPort", "1145", "Port to listen for announce packets on")
 	announceCmd.Flags().BoolP("announceMulticast", "m", false, "true if announcing using multicast")
-	announceCmd.Flags().StringP("dataAddr", "d", ":1146", "Address to transmit data on")
+	announceCmd.Flags().String("dataListenPort", "1146", "Port to listen for data packets on")
 	announceCmd.Flags().StringP("nodeName", "n", "", "Node name")
 	announceCmd.Flags().IntP("announceInterval", "i", 5, "interval (in seconds) to announce presence to the network")
 
 	viper.BindPFlag("announceAddr", announceCmd.Flags().Lookup("announceAddr"))
+	viper.BindPFlag("announceListenPort", announceCmd.Flags().Lookup("announceListenPort"))
 	viper.BindPFlag("announceMulticast", announceCmd.Flags().Lookup("announceMulticast"))
 	viper.BindPFlag("dataAddr", announceCmd.Flags().Lookup("dataAddr"))
+	viper.BindPFlag("dataListenPort", announceCmd.Flags().Lookup("dataListenPort"))
 	viper.BindPFlag("nodeName", announceCmd.Flags().Lookup("nodeName"))
 	viper.BindPFlag("announceInterval", announceCmd.Flags().Lookup("announceInterval"))
 
 	rootCmd.AddCommand(announceCmd)
 }
 
-func initalizeAnnounce(nodeName, addr, announceAddr string, interval int) {
+func initalizeAnnounce(nodeName string) {
 	if viper.GetBool("profile") {
 		// start cpu profiling
 		defer profile.Start().Stop()
 	}
 
+	interval := viper.GetInt("announceInterval")
 	settings := net.InterfaceSettings{
 		AnnounceInterval: time.Second * time.Duration(interval),
 	}
 
-	// create data connection
-	u, err := udp.NewUniNet(addr)
+	// create data connections
+	dataReceive := viper.GetString("dataListenPort")
+	listenAddr := ":" + dataReceive
+	dr, err := udp.NewUniReader(listenAddr)
 	if err != nil {
-		log.Panic().Err(err).Msg("unable to create udp data connection")
+		log.Panic().Err(err).Str("listenAddr", listenAddr).Msg("unable to create udp data UniReader")
 	}
 
 	// create announce connection
-	var announceConn udp.NetCommunicator
-
+	var ar udp.NetReader
+	announceSend := viper.GetString("announceAddr")
+	announceReceive := viper.GetString("announceListenPort")
+	aListenAddr := ":" + announceReceive
 	if viper.GetBool("announceMulticast") {
-		announceConn, err = udp.NewMulticastNet(announceAddr)
+		ar, err = udp.NewMulticastReader(aListenAddr)
 	} else {
-		announceConn, err = udp.NewUniNet(announceAddr)
+		ar, err = udp.NewUniReader(aListenAddr)
 	}
 	if err != nil {
-		log.Panic().Err(err).Msg("unable to create udp announce connection")
+		log.Panic().Err(err).Str("aListenAddr", aListenAddr).Msg("unable to create udp announce NetReader")
 	}
 
-	i, err := net.NewInterface(nodeName, u, announceConn, settings)
+	as, err := udp.NewUDPWriter(announceSend)
+	if err != nil {
+		log.Panic().Err(err).Str("dataAddr", announceSend).Msg("unable to create announce udp data UDPWriter")
+	}
+
+	i, err := net.NewInterface(nodeName, dr, as, ar, settings)
 	if err != nil {
 		log.Panic().Err(err).Msg("unable to start net interface")
 	}

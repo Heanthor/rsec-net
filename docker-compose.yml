@@ -20,7 +20,8 @@ services:
             - NODENAME=basestation
             - ANNOUNCEMULTICAST=false
             - ANNOUNCEADDR=multicaster:1140
-            - DATAADDR=:1146
+            - ANNOUNCELISTENPORT=1140
+            - DATALISTENPORT=1146
     node1:
         build:
             context: .
@@ -32,4 +33,5 @@ services:
             - NODENAME=node1
             - ANNOUNCEMULTICAST=false
             - ANNOUNCEADDR=multicaster:1140
-            - DATAADDR=:1147
+            - ANNOUNCELISTENPORT=1140
+            - DATALISTENPORT=1147

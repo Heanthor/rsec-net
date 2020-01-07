@@ -26,7 +26,11 @@ type InterfaceSettings struct {
 // function for sending to addr, send to node name
 // receive from node, receive from all
 type Interface struct {
-	uni      *udp.UniNet
+	dataSend    udp.NetWriter
+	dataReceive udp.NetReader
+
+	announceReceive udp.NetReader
+
 	settings *InterfaceSettings
 	ad       *announceDaemon
 
@@ -37,15 +41,17 @@ type Interface struct {
 // NewInterface creates a net interface.
 // addr must be of form ip:port.
 // returns error if udp address resolution fails.
-func NewInterface(nodeName string, dataComm *udp.UniNet, announceComm udp.NetCommunicator, settings InterfaceSettings) (*Interface, error) {
+func NewInterface(nodeName string, dataReceive udp.NetReader, announceSend udp.NetWriter, announceReceive udp.NetReader, settings InterfaceSettings) (*Interface, error) {
 	errChan := make(chan error)
 
-	recvChan, err := dataComm.StartReceiving()
+	// TODO create data sender when a recipient is determined
+
+	recvChan, err := dataReceive.StartReceiving()
 	if err != nil {
 		return nil, err
 	}
 
-	mRecvChan, err := announceComm.StartReceiving()
+	mRecvChan, err := announceReceive.StartReceiving()
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +59,14 @@ func NewInterface(nodeName string, dataComm *udp.UniNet, announceComm udp.NetCom
 	m := cmap.New()
 
 	return &Interface{
-		uni:         dataComm,
-		settings:    &settings,
-		ErrChan:     errChan,
-		MessageChan: recvChan,
+		dataReceive:     dataReceive,
+		announceReceive: announceReceive,
+		settings:        &settings,
+		ErrChan:         errChan,
+		MessageChan:     recvChan,
 		ad: &announceDaemon{
-			identity:         Identity{nodeName, dataComm.ReadAddr()}, // TODO what is my external ip?
-			mu:               announceComm,
+			identity:         Identity{nodeName, dataReceive.ReadAddr()}, // TODO what is my external ip?
+			w:                announceSend,
 			errChan:          errChan,
 			announceInterval: settings.AnnounceInterval,
 			msgChan:          mRecvChan,
@@ -78,7 +85,8 @@ func (n *Interface) StartAnnounce() {
 
 // Close stops the announce daemon and closes all open connections and channels
 func (n *Interface) Close() {
-	n.uni.StopReceiving()
+	n.dataReceive.StopReceiving()
+	n.announceReceive.StopReceiving()
 	n.ad.StopAnnounceDaemon()
 	close(n.ErrChan)
 }
