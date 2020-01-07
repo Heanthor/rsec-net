@@ -9,7 +9,7 @@ def listen():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     port = os.getenv('MULTICASTER_PORT', 1140)
-    server_address = ('localhost', int(port))
+    server_address = ('0.0.0.0', int(port))
 
     print('starting on %s port %d' % server_address)
     sock.bind(server_address)
@@ -18,7 +18,6 @@ def listen():
         data = sock.recv(4096)
 
         if data:
-            print('\n\ngot data: %s' % data)
             for dest in routing_table["nodes"]:
                 dest_addr = (dest["addr"], int(dest["port"]))
                 print('forwarding to %s:%d' % (dest_addr[0], dest_addr[1]))

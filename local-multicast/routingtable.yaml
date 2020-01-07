@@ -1,3 +1,5 @@
 nodes:
-    - addr: "localhost"
-      port: "5599"
+    - addr: "base_station"
+      port: "1146"
+    - addr: "node1"
+      port: "1147"
