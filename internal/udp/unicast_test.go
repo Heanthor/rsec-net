@@ -12,8 +12,9 @@ import (
 const addr = ":1145"
 
 var (
-	testNet  *UniNet
-	recvChan <-chan interface{}
+	writer     *UDPWriter
+	testReader *UniReader
+	recvChan   <-chan interface{}
 )
 
 type s struct {
@@ -21,7 +22,11 @@ type s struct {
 }
 
 func init() {
-	n, err := NewUniNet(addr)
+	w, err := NewUDPWriter(addr)
+	if err != nil {
+		panic(err)
+	}
+	n, err := NewUniReader(addr)
 	if err != nil {
 		panic(err)
 	}
@@ -31,7 +36,8 @@ func init() {
 		panic(err)
 	}
 
-	testNet = n
+	writer = w
+	testReader = n
 	recvChan = recv
 
 	// needed to send the type through gob
@@ -40,10 +46,10 @@ func init() {
 
 func TestNet_SendReceive(t *testing.T) {
 	// use another Net to send to the running server
-	n, err := NewUniNet(addr)
+	w, err := NewUDPWriter(addr)
 	require.NoError(t, err)
 
-	err = n.Write(s{"hello"})
+	err = w.Write(s{"hello"})
 	require.NoError(t, err)
 
 	msgIn := <-recvChan
@@ -54,13 +60,13 @@ func TestNet_SendReceive(t *testing.T) {
 
 func TestNet_SendReceiveMultiple(t *testing.T) {
 	// use another Net to send to the running server
-	n, err := NewUniNet(addr)
+	w, err := NewUDPWriter(addr)
 	require.NoError(t, err)
 
-	err = n.Write(s{"hello"})
+	err = w.Write(s{"hello"})
 	require.NoError(t, err)
 
-	err = n.Write(s{"goodbye"})
+	err = w.Write(s{"goodbye"})
 	require.NoError(t, err)
 
 	msgIn := <-recvChan

@@ -58,7 +58,7 @@ func NewInterface(nodeName string, dataComm *udp.UniNet, announceComm udp.NetCom
 		ErrChan:     errChan,
 		MessageChan: recvChan,
 		ad: &announceDaemon{
-			identity:         Identity{nodeName, dataComm.Addr()},
+			identity:         Identity{nodeName, dataComm.ReadAddr()}, // TODO what is my external ip?
 			mu:               announceComm,
 			errChan:          errChan,
 			announceInterval: settings.AnnounceInterval,

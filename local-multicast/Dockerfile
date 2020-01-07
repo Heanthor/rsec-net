@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD [ "python", "./multicaster.py" ]
+CMD [ "python", "-u", "./multicaster.py" ]

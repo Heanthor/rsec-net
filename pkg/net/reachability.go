@@ -33,7 +33,7 @@ type announceDaemon struct {
 // The announce daemon does two things: periodically announces on the network, and listens for
 // other announcements, updating the map of known nodes when found.
 func (a *announceDaemon) StartAnnounceDaemon() {
-	log.Info().Str("addr", a.mu.Addr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
+	log.Info().Str("writeAddr", a.mu.WriteAddr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
 	a.startSending()
 
 	time.Sleep(time.Second * 1)

@@ -14,32 +14,22 @@ services:
             context: .
             dockerfile: Dockerfile
         ports:
-            - "1145/udp"
+            - "1140/udp"
             - "1146/udp"
         environment:
             - NODENAME=basestation
             - ANNOUNCEMULTICAST=false
-            - ANNOUNCEADDR=:1145
+            - ANNOUNCEADDR=multicaster:1140
             - DATAADDR=:1146
-        networks:
-            - basestation_network
-    # node1:
-    #     build:
-    #         context: .
-    #         dockerfile: Dockerfile        
-    #     ports:
-    #         - "1144/udp"
-    #         - "1147/udp"
-    #     environment:
-    #         - NODENAME=node1
-    #         - ANNOUNCEMULTICAST=false
-    #         - ANNOUNCEADDR=:1144
-    #         - DATAADDR=:1147
-    #     networks:
-    #         - node1_network
-
-networks:
-    basestation_network:
-        internal: true
-    node1_network:
-        internal: true
+    node1:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - "1140/udp"
+            - "1147/udp"
+        environment:
+            - NODENAME=node1
+            - ANNOUNCEMULTICAST=false
+            - ANNOUNCEADDR=multicaster:1140
+            - DATAADDR=:1147

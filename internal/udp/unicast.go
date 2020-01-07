@@ -6,8 +6,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// UniNet implements NetCommunicator for unicast UDP communication
-type UniNet struct {
+// UniReader implements NetReader for unicast UDP communication
+type UniReader struct {
 	addr       *net.UDPAddr
 	addrString string
 
@@ -18,8 +18,8 @@ type UniNet struct {
 	ErrChan      <-chan error
 }
 
-// NewUniNet creates a new net struct used for sending and receiving to and from the given address (hostname:port)
-func NewUniNet(addr string) (*UniNet, error) {
+// NewUniReader creates a new net struct used for receiving from the given address (hostname:port)
+func NewUniReader(addr string) (*UniReader, error) {
 	errChan := make(chan error)
 	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
@@ -30,7 +30,7 @@ func NewUniNet(addr string) (*UniNet, error) {
 	stopChan := make(chan bool)
 	doneStoppingChan := make(chan bool)
 
-	return &UniNet{
+	return &UniReader{
 		addr:             udpAddr,
 		addrString:       addr,
 		stopChan:         stopChan,
@@ -40,13 +40,8 @@ func NewUniNet(addr string) (*UniNet, error) {
 	}, nil
 }
 
-// Write opens a writes a UDP datagram to the configured address and port.
-func (n *UniNet) Write(data interface{}) error {
-	return write(n.addr, data)
-}
-
 // StartReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
-func (n *UniNet) StartReceiving() (<-chan interface{}, error) {
+func (n *UniReader) StartReceiving() (<-chan interface{}, error) {
 	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, net.ListenUDP)
 	n.stopListener = resetFunc
 
@@ -54,13 +49,14 @@ func (n *UniNet) StartReceiving() (<-chan interface{}, error) {
 }
 
 // StopReceiving closes channels and stops the receive loop
-func (n *UniNet) StopReceiving() {
+func (n *UniReader) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan
 	n.stopListener()
 	log.Debug().Msg("unicast stopped receiving")
 }
 
-func (n *UniNet) Addr() string {
+// ReadAddr returns the address being read from (host:port)
+func (n *UniReader) ReadAddr() string {
 	return n.addrString
 }

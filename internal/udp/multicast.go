@@ -6,8 +6,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// MulticastNet implements NetCommunicator for multicast UDP communication
-type MulticastNet struct {
+// MulticastReader implements NetReader for multicast UDP communication
+type MulticastReader struct {
 	addr       *net.UDPAddr
 	addrString string
 
@@ -19,7 +19,7 @@ type MulticastNet struct {
 }
 
 // NewMulticastNet creates a new net struct used for sending and receiving to and from the given address (hostname:port)
-func NewMulticastNet(addr string) (*MulticastNet, error) {
+func NewMulticastReader(addr string) (*MulticastReader, error) {
 	errChan := make(chan error)
 	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
@@ -30,7 +30,7 @@ func NewMulticastNet(addr string) (*MulticastNet, error) {
 	stopChan := make(chan bool)
 	doneStoppingChan := make(chan bool)
 
-	return &MulticastNet{
+	return &MulticastReader{
 		addr:             udpAddr,
 		addrString:       addr,
 		stopChan:         stopChan,
@@ -40,13 +40,8 @@ func NewMulticastNet(addr string) (*MulticastNet, error) {
 	}, nil
 }
 
-// Write opens a writes a UDP datagram to the configured address and port.
-func (n *MulticastNet) Write(data interface{}) error {
-	return write(n.addr, data)
-}
-
 // StartReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
-func (n *MulticastNet) StartReceiving() (<-chan interface{}, error) {
+func (n *MulticastReader) StartReceiving() (<-chan interface{}, error) {
 	listenFunc := func(network string, gaddr *net.UDPAddr) (*net.UDPConn, error) {
 		return net.ListenMulticastUDP(network, nil, gaddr)
 	}
@@ -58,13 +53,13 @@ func (n *MulticastNet) StartReceiving() (<-chan interface{}, error) {
 }
 
 // StopReceiving closes channels and stops the receive loop
-func (n *MulticastNet) StopReceiving() {
+func (n *MulticastReader) StopReceiving() {
 	n.stopChan <- true
 	<-n.doneStoppingChan
 	n.stopListener()
 	log.Debug().Msg("multicast stopped receiving")
 }
 
-func (n *MulticastNet) Addr() string {
+func (n *MulticastReader) ReadAddr() string {
 	return n.addrString
 }

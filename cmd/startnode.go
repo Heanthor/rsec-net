@@ -75,9 +75,9 @@ func initalizeAnnounce(nodeName, addr, announceAddr string, interval int) {
 	var announceConn udp.NetCommunicator
 
 	if viper.GetBool("announceMulticast") {
-		announceConn, err = udp.NewMulticastNet(addr)
+		announceConn, err = udp.NewMulticastNet(announceAddr)
 	} else {
-		announceConn, err = udp.NewUniNet(addr)
+		announceConn, err = udp.NewUniNet(announceAddr)
 	}
 	if err != nil {
 		log.Panic().Err(err).Msg("unable to create udp announce connection")

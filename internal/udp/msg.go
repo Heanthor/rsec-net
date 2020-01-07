@@ -13,9 +13,29 @@ import (
 type resetFunc func()
 type listenFunc func(network string, laddr *net.UDPAddr) (*net.UDPConn, error)
 
+// UDPWriter contains methods to write to a udp address (host:port)
+type UDPWriter struct {
+	addr       *net.UDPAddr
+	addrString string
+}
+
+// NewUDPWriter creates a new writer that writes to the given address (host:port)
+func NewUDPWriter(addr string) (*UDPWriter, error) {
+	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
+	if err != nil {
+		log.Error().Err(err).Msg("ResolveUDPAddr failure")
+		return nil, err
+	}
+
+	return &UDPWriter{
+		addr:       udpAddr,
+		addrString: addr,
+	}, nil
+}
+
 // write opens a writes a UDP datagram to the configured address and port.
-func write(addr *net.UDPAddr, data interface{}) error {
-	conn, err := net.DialUDP("udp4", nil, addr)
+func (u *UDPWriter) Write(data interface{}) error {
+	conn, err := net.DialUDP("udp4", nil, u.addr)
 	if err != nil {
 		log.Error().Err(err).Msg("DialUDP failure")
 		return err
@@ -43,6 +63,11 @@ func write(addr *net.UDPAddr, data interface{}) error {
 	log.Debug().Int("len", len).Interface("data", data).Msg("wrote message")
 
 	return nil
+}
+
+// WriteAddr returns the address written to
+func (u *UDPWriter) WriteAddr() string {
+	return u.addrString
 }
 
 // startReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
