@@ -46,9 +46,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rsec-net.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose (debug) logging")
 	rootCmd.PersistentFlags().Bool("profile", false, "enable cpu profiling")
+	rootCmd.PersistentFlags().String("profileMode", "cpu", "select profiling mode, one of [cpu, mem, mutex, block], default cpu")
 
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("profile", rootCmd.PersistentFlags().Lookup("profile"))
+	viper.BindPFlag("profileMode", rootCmd.PersistentFlags().Lookup("profileMode"))
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -3,3 +3,6 @@ build-linux:
 
 run: build-linux
 	docker-compose up --build
+
+clean:
+	docker-compose down

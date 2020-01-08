@@ -49,7 +49,6 @@ func (suite *AnnounceDaemonSuite) Test_DaemonAnnounce() {
 	time.Sleep(time.Second * 2)
 
 	assert.Contains(suite.T(), testDaemon.connectedNodes.Keys(), "writeDaemon")
-	testDaemon.mu.StopReceiving()
 }
 
 func TestAnnounceDaemonSuite(t *testing.T) {
@@ -60,12 +59,16 @@ func initNewAnnounceDaemon(nodeName, addr string, announceInterval time.Duration
 	errChan := make(chan error)
 
 	// even though reachability is through multicast, test with unicast
-	mu, err := udp.NewUniNet(addr)
+	w, err := udp.NewUDPWriter(addr)
 	if err != nil {
 		panic(err)
 	}
 
-	mRecvChan, err := mu.StartReceiving()
+	rd, err := udp.NewUniReader(addr)
+	if err != nil {
+		panic(err)
+	}
+	mRecvChan, err := rd.StartReceiving()
 	if err != nil {
 		panic(err)
 	}
@@ -74,7 +77,7 @@ func initNewAnnounceDaemon(nodeName, addr string, announceInterval time.Duration
 
 	return &announceDaemon{
 		identity:         Identity{nodeName, addr},
-		mu:               mu,
+		w:                w,
 		errChan:          errChan,
 		announceInterval: announceInterval,
 		msgChan:          mRecvChan,
@@ -88,7 +91,7 @@ func initNewAnnounceDaemon(nodeName, addr string, announceInterval time.Duration
 func initWriteOnlyNewAnnounceDaemon(nodeName, addr string, announceInterval time.Duration) *announceDaemon {
 	errChan := make(chan error)
 
-	mu, err := udp.NewUniNet(addr)
+	w, err := udp.NewUDPWriter(addr)
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +102,7 @@ func initWriteOnlyNewAnnounceDaemon(nodeName, addr string, announceInterval time
 
 	return &announceDaemon{
 		identity:         Identity{nodeName, addr},
-		mu:               mu,
+		w:                w,
 		errChan:          errChan,
 		announceInterval: announceInterval,
 		msgChan:          fakeRecvChan,

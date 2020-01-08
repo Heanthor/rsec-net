@@ -62,14 +62,17 @@ func (a *announceDaemon) startSending() {
 func (a *announceDaemon) startReceiving() {
 	go func() {
 		for {
+			log.Debug().Msg("loop")
 			select {
 			case <-a.stopChan:
+				log.Debug().Msg("in stop chan")
 				a.doneStoppingChan <- true
 
 				return
 			case msgIn := <-a.msgChan:
+				log.Debug().Interface("in", msgIn).Msg("got in announce daemon")
 				if m, ok := msgIn.(AnnouncePacket); ok {
-					if a.acceptOwnPackets || m.Identity.Addr != a.identity.Addr {
+					if a.acceptOwnPackets || m.Identity.NodeName != a.identity.NodeName {
 						a.handleAnnounceResponse(&m)
 					}
 				} else {

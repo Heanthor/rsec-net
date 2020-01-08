@@ -57,8 +57,19 @@ func init() {
 
 func initalizeAnnounce(nodeName string) {
 	if viper.GetBool("profile") {
-		// start cpu profiling
-		defer profile.Start().Stop()
+		// start profiling
+		switch viper.GetString("profileMode") {
+		case "cpu":
+			defer profile.Start(profile.CPUProfile).Stop()
+		case "mem":
+			defer profile.Start(profile.MemProfile).Stop()
+		case "mutex":
+			defer profile.Start(profile.MutexProfile).Stop()
+		case "block":
+			defer profile.Start(profile.BlockProfile).Stop()
+		default:
+			// do nothing
+		}
 	}
 
 	interval := viper.GetInt("announceInterval")
@@ -101,12 +112,9 @@ func initalizeAnnounce(nodeName string) {
 
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		log.Info().Msg("CTRL-C pressed, stopping...")
-		i.Close()
-		os.Exit(0)
-	}()
 
-	time.Sleep(time.Hour * time.Duration(1))
+	<-c
+	log.Info().Msg("CTRL-C pressed, stopping...")
+	i.Close()
+	os.Exit(0)
 }

@@ -79,9 +79,10 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 	}
 	listener.SetReadBuffer(maxDatagramSize)
 
-	dataChan := make(chan interface{}, 1)
-	go func(chan interface{}) {
+	dataChan := make(chan interface{})
+	go func() {
 		for {
+			log.Debug().Msg("read loop")
 			select {
 			case <-stopChan:
 				doneStoppingChan <- true
@@ -98,11 +99,9 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 			}
 
 			if len == 0 {
-				// TODO figure out why this happens
+				// seems to happen on read deadline timeout
 				continue
 			}
-
-			log.Debug().Interface("src", src).Int("len", len).Msg("got message")
 
 			var data Message
 			r := bytes.NewReader(b)
@@ -113,10 +112,11 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 				continue
 			}
 
-			log.Debug().Interface("message", data).Msg("StartReceiving got message")
+			log.Debug().Interface("src", src).Interface("message", data).Msg("msg in")
 			dataChan <- data.Data
+			log.Debug().Msg("finished writing to channel")
 		}
-	}(dataChan)
+	}()
 
 	stopListener := func() {
 		listener.Close()
