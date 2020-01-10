@@ -36,8 +36,6 @@ func (a *announceDaemon) StartAnnounceDaemon() {
 	log.Info().Str("writeAddr", a.w.WriteAddr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
 	a.startSending()
 
-	time.Sleep(time.Second * 1)
-
 	a.startReceiving()
 
 	log.Info().Msg("Announce daemon started")

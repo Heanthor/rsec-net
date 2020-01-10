@@ -82,7 +82,6 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 	dataChan := make(chan interface{})
 	go func() {
 		for {
-			log.Debug().Msg("read loop")
 			select {
 			case <-stopChan:
 				doneStoppingChan <- true

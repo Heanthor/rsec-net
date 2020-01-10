@@ -57,18 +57,32 @@ func init() {
 
 func initalizeAnnounce(nodeName string) {
 	if viper.GetBool("profile") {
-		// start profiling
+		pp := viper.GetString("profilePath")
+		mode := profile.CPUProfile
+		doProfile := true
+
 		switch viper.GetString("profileMode") {
 		case "cpu":
-			defer profile.Start(profile.CPUProfile).Stop()
+			log.Info().Msg("Profiling in cpu mode")
 		case "mem":
-			defer profile.Start(profile.MemProfile).Stop()
+			log.Info().Msg("Profiling in memory mode")
+			mode = profile.MemProfile
 		case "mutex":
-			defer profile.Start(profile.MutexProfile).Stop()
+			log.Info().Msg("Profiling in mutex mode")
+			mode = profile.MutexProfile
 		case "block":
-			defer profile.Start(profile.BlockProfile).Stop()
+			log.Info().Msg("Profiling in block mode")
+			mode = profile.BlockProfile
+		case "goroutine":
+			log.Info().Msg("Profiling in block mode")
+			mode = profile.GoroutineProfile
 		default:
+			doProfile = false
 			// do nothing
+		}
+
+		if doProfile {
+			defer profile.Start(mode, profile.ProfilePath(pp)).Stop()
 		}
 	}
 
