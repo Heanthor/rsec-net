@@ -1,5 +1,6 @@
 FROM alpine:latest
 
-COPY build/rsec-net /bin/
+WORKDIR /app
 
-ENTRYPOINT [ "/bin/rsec-net", "start-node", "-v"]
+# ENTRYPOINT [ "/bin/rsec-net", "start-node", "-v"]
+ENTRYPOINT [ "build/rsec-net", "start-node", "-v", "--profile", "--profileMode=goroutine"]

@@ -88,6 +88,7 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 				return
 			default:
 			}
+
 			listener.SetReadDeadline(time.Now().Add(time.Second * 2))
 
 			b := make([]byte, maxDatagramSize)

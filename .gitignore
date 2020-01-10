@@ -16,3 +16,6 @@ rsec-net
 build/*
 *.pdf
 .vscode
+
+profiles/*
+.DS_Store

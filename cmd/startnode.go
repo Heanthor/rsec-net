@@ -56,6 +56,8 @@ func init() {
 }
 
 func initalizeAnnounce(nodeName string) {
+	var profiler interface{ Stop() }
+
 	if viper.GetBool("profile") {
 		pp := viper.GetString("profilePath")
 		mode := profile.CPUProfile
@@ -74,7 +76,7 @@ func initalizeAnnounce(nodeName string) {
 			log.Info().Msg("Profiling in block mode")
 			mode = profile.BlockProfile
 		case "goroutine":
-			log.Info().Msg("Profiling in block mode")
+			log.Info().Msg("Profiling in goroutine mode")
 			mode = profile.GoroutineProfile
 		default:
 			doProfile = false
@@ -82,7 +84,7 @@ func initalizeAnnounce(nodeName string) {
 		}
 
 		if doProfile {
-			defer profile.Start(mode, profile.ProfilePath(pp)).Stop()
+			profiler = profile.Start(mode, profile.ProfilePath(pp), profile.NoShutdownHook)
 		}
 	}
 
@@ -125,10 +127,11 @@ func initalizeAnnounce(nodeName string) {
 	i.StartAnnounce()
 
 	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	<-c
 	log.Info().Msg("CTRL-C pressed, stopping...")
+	profiler.Stop()
 	i.Close()
 	os.Exit(0)
 }
