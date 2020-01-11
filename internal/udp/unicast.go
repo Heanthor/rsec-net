@@ -41,8 +41,8 @@ func NewUniReader(addr string) (*UniReader, error) {
 }
 
 // StartReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
-func (n *UniReader) StartReceiving() (<-chan interface{}, error) {
-	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, net.ListenUDP)
+func (n *UniReader) StartReceiving(tag string) (<-chan interface{}, error) {
+	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, net.ListenUDP, tag)
 	n.stopListener = resetFunc
 
 	return msgChan, err

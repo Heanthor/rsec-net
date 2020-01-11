@@ -31,7 +31,7 @@ func init() {
 		panic(err)
 	}
 
-	recv, err := n.StartReceiving()
+	recv, err := n.StartReceiving("test")
 	if err != nil {
 		panic(err)
 	}

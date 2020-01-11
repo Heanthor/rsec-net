@@ -45,14 +45,18 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.rsec-net.yaml)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose (debug) logging")
-	rootCmd.PersistentFlags().Bool("profile", false, "enable cpu profiling")
+	rootCmd.PersistentFlags().Bool("profile", false, "enable profiling")
 	rootCmd.PersistentFlags().String("profileMode", "cpu", "select profiling mode, one of [cpu, mem, mutex, block, goroutine], default cpu")
 	rootCmd.PersistentFlags().String("profilePath", "./", "profile file location, default current directory")
+	rootCmd.PersistentFlags().Bool("netProfile", false, "enable pprof profiling server")
+	rootCmd.PersistentFlags().Int("netProfilePort", 8080, "pprof profiling server port")
 
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("profile", rootCmd.PersistentFlags().Lookup("profile"))
 	viper.BindPFlag("profileMode", rootCmd.PersistentFlags().Lookup("profileMode"))
 	viper.BindPFlag("profilePath", rootCmd.PersistentFlags().Lookup("profilePath"))
+	viper.BindPFlag("netProfile", rootCmd.PersistentFlags().Lookup("netProfile"))
+	viper.BindPFlag("netProfilePort", rootCmd.PersistentFlags().Lookup("netProfilePort"))
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -2,7 +2,7 @@ package udp
 
 // NetReader binds to and continuously reads from the given host and port
 type NetReader interface {
-	StartReceiving() (<-chan interface{}, error)
+	StartReceiving(string) (<-chan interface{}, error)
 	StopReceiving()
 	ReadAddr() string
 }

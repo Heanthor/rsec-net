@@ -41,12 +41,12 @@ func NewMulticastReader(addr string) (*MulticastReader, error) {
 }
 
 // StartReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
-func (n *MulticastReader) StartReceiving() (<-chan interface{}, error) {
+func (n *MulticastReader) StartReceiving(tag string) (<-chan interface{}, error) {
 	listenFunc := func(network string, gaddr *net.UDPAddr) (*net.UDPConn, error) {
 		return net.ListenMulticastUDP(network, nil, gaddr)
 	}
 
-	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, listenFunc)
+	msgChan, resetFunc, err := startReceiving(n.addr, n.stopChan, n.doneStoppingChan, listenFunc, tag)
 	n.stopListener = resetFunc
 
 	return msgChan, err

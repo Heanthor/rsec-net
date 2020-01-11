@@ -46,12 +46,12 @@ func NewInterface(nodeName string, dataReceive udp.NetReader, announceSend udp.N
 
 	// TODO create data sender when a recipient is determined
 
-	recvChan, err := dataReceive.StartReceiving()
+	recvChan, err := dataReceive.StartReceiving("data")
 	if err != nil {
 		return nil, err
 	}
 
-	mRecvChan, err := announceReceive.StartReceiving()
+	mRecvChan, err := announceReceive.StartReceiving("announce")
 	if err != nil {
 		return nil, err
 	}

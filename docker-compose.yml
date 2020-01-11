@@ -13,9 +13,11 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+        # command: "--netProfile"
         ports:
             - "1140/udp"
             - "1146/udp"
+            # - "8080:8080" # net profiler
         environment:
             - NODENAME=basestation
             - ANNOUNCEMULTICAST=false

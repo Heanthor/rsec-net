@@ -71,7 +71,7 @@ func (u *UDPWriter) WriteAddr() string {
 }
 
 // startReceiving starts listening on the Net, and returns a channel which will yield messages when they arrive.
-func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan bool, listenFunc listenFunc) (<-chan interface{}, resetFunc, error) {
+func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan bool, listenFunc listenFunc, tag string) (<-chan interface{}, resetFunc, error) {
 	listener, err := listenFunc("udp4", addr)
 	if err != nil {
 		log.Error().Err(err).Msg("ListenUDP failure")
@@ -80,7 +80,7 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 	listener.SetReadBuffer(maxDatagramSize)
 
 	dataChan := make(chan interface{})
-	go func() {
+	go func(dc chan interface{}) {
 		for {
 			select {
 			case <-stopChan:
@@ -112,11 +112,11 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 				continue
 			}
 
-			log.Debug().Interface("src", src).Interface("message", data).Msg("msg in")
+			log.Debug().Str("tag", tag).Interface("src", src).Interface("message", data).Msg("msg in")
 			dataChan <- data.Data
 			log.Debug().Msg("finished writing to channel")
 		}
-	}()
+	}(dataChan)
 
 	stopListener := func() {
 		listener.Close()

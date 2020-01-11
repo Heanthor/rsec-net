@@ -1,5 +1,5 @@
 nodes:
     - addr: "base_station"
-      port: "1146"
+      port: "1140"
     - addr: "node1"
-      port: "1147"
+      port: "1140"

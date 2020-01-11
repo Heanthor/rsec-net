@@ -1,10 +1,16 @@
 package cmd
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
+	"strconv"
 	"syscall"
 	"time"
+
+	// pprof network server
+	_ "net/http/pprof"
 
 	"github.com/Heanthor/rsec-net/internal/udp"
 
@@ -73,6 +79,7 @@ func initalizeAnnounce(nodeName string) {
 			log.Info().Msg("Profiling in mutex mode")
 			mode = profile.MutexProfile
 		case "block":
+			runtime.SetBlockProfileRate(1)
 			log.Info().Msg("Profiling in block mode")
 			mode = profile.BlockProfile
 		case "goroutine":
@@ -86,6 +93,15 @@ func initalizeAnnounce(nodeName string) {
 		if doProfile {
 			profiler = profile.Start(mode, profile.ProfilePath(pp), profile.NoShutdownHook)
 		}
+	}
+
+	if viper.GetBool("netProfile") {
+		go func() {
+			runtime.SetBlockProfileRate(1)
+			port := viper.GetInt("netProfilePort")
+			log.Info().Msgf("Started pprof http server on %d", port)
+			http.ListenAndServe("0.0.0.0:"+strconv.Itoa(port), nil)
+		}()
 	}
 
 	interval := viper.GetInt("announceInterval")

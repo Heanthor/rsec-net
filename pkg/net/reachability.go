@@ -60,7 +60,6 @@ func (a *announceDaemon) startSending() {
 func (a *announceDaemon) startReceiving() {
 	go func() {
 		for {
-			log.Debug().Msg("loop")
 			select {
 			case <-a.stopChan:
 				log.Debug().Msg("in stop chan")
