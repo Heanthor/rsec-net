@@ -1,0 +1,5 @@
+nodes:
+    - addr: "host.docker.internal"
+      port: "1140"
+    - addr: "node1"
+      port: "1140"

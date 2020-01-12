@@ -9,6 +9,7 @@ services:
             - "1100/udp"
         environment:
             - MULTICASTER_PORT=1100
+            - VERBOSE=false
     base_station:
         build:
             context: .

@@ -27,6 +27,8 @@ type announceDaemon struct {
 	// announce fields
 	seqNo         uint16
 	connNodesHash [16]byte
+	// if we update the list of connected nodes, immediately send out another broadcast
+	announceUpdateChan chan bool
 }
 
 // StartAnnounceDaemon creates the announce daemon and starts its operation.
@@ -34,6 +36,8 @@ type announceDaemon struct {
 // other announcements, updating the map of known nodes when found.
 func (a *announceDaemon) StartAnnounceDaemon() {
 	log.Info().Str("writeAddr", a.w.WriteAddr()).Str("nodeName", a.identity.NodeName).Msg("Starting announce daemon...")
+	a.announceUpdateChan = make(chan bool)
+
 	a.startSending()
 
 	a.startReceiving()
@@ -51,6 +55,9 @@ func (a *announceDaemon) startSending() {
 				// don't care about waiting for this goroutine before doing other cleanup
 				return
 			case <-announceTicker.C:
+				a.doAnnounce()
+			case <-a.announceUpdateChan:
+				log.Debug().Msg("announcing new connected nodes")
 				a.doAnnounce()
 			}
 		}
@@ -115,6 +122,16 @@ func (a *announceDaemon) doAnnounce() {
 }
 
 func (a *announceDaemon) handleAnnounceResponse(ap *AnnouncePacket) {
-	a.connectedNodes.SetIfAbsent(ap.NodeName, ap)
-	log.Info().Interface("connectedNodes", a.connectedNodes).Msg("New connected nodes")
+	if didUpdate := a.connectedNodes.SetIfAbsent(ap.NodeName, ap); didUpdate {
+		log.Info().Interface("connectedNodes", a.connectedNodes).Msg("New connected nodes")
+		a.announceUpdateChan <- true
+	} else {
+		e, _ := a.connectedNodes.Get(ap.NodeName)
+		existing := e.(*AnnouncePacket)
+
+		if ap.SequenceNum > existing.SequenceNum {
+			a.connectedNodes.Set(ap.NodeName, ap)
+			a.announceUpdateChan <- true
+		}
+	}
 }

@@ -114,7 +114,6 @@ func startReceiving(addr *net.UDPAddr, stopChan chan bool, doneStoppingChan chan
 
 			log.Debug().Str("tag", tag).Interface("src", src).Interface("message", data).Msg("msg in")
 			dataChan <- data.Data
-			log.Debug().Msg("finished writing to channel")
 		}
 	}(dataChan)
 

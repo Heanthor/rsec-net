@@ -1,40 +1,30 @@
 version: "3.7"
 
 services:
-    # multicaster:
-    #     build:
-    #         context: "local-multicast/."
-    #         dockerfile: Dockerfile
-    #     ports:
-    #         - "1140/udp"
-    #     environment:
-    #         - MULTICASTER_PORT=1140
-    base_station:
+    multicaster:
+        build:
+            context: "local-multicast/."
+            dockerfile: Dockerfile
+        ports:
+            - "1100:1100/udp"
+        environment:
+            - MULTICASTER_PORT=1100
+            - VERBOSE=false
+            - ROUTINGTABLE_FILENAME=routingtable.debug.yml
+    node1:
         build:
             context: .
             dockerfile: Dockerfile
         ports:
-            - "1140:1140/udp"
-            - "1146/udp"
+            - "1140/udp"
+            - "1147:1147/udp"
         environment:
-            - NODENAME=basestation
+            - NODENAME=node1
             - ANNOUNCEMULTICAST=false
-            - ANNOUNCEADDR=host.docker.internal:1140
+            - ANNOUNCEADDR=multicaster:1100
             - ANNOUNCELISTENPORT=1140
-            - DATALISTENPORT=1146
+            - DATALISTENPORT=1147
+            - PROFILEPATH=./profiles/node1/
         volumes:
             - "./:/app/"
         init: true
-    # node1:
-    #     build:
-    #         context: .
-    #         dockerfile: Dockerfile
-    #     ports:
-    #         - "1140/udp"
-    #         - "1147/udp"
-    #     environment:
-    #         - NODENAME=node1
-    #         - ANNOUNCEMULTICAST=false
-    #         - ANNOUNCEADDR=multicaster:1140
-    #         - ANNOUNCELISTENPORT=1140
-    #         - DATALISTENPORT=1147
