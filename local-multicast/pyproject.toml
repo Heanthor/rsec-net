@@ -6,7 +6,7 @@ authors = ["Reed Trevelyan <reedtrevelyan@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-PyYAML = "^5.2"
+PyYAML = "^5.4"
 
 [tool.poetry.dev-dependencies]
 
